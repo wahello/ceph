@@ -1905,6 +1905,7 @@ void CDir::_go_bad()
 
 void CDir::go_bad_dentry(snapid_t last, const std::string &dname)
 {
+  dout(10) << "go_bad_dentry " << dname << dendl;
   const bool fatal = cache->mds->damage_table.notify_dentry(
       inode->ino(), frag, last, dname);
   if (fatal) {
@@ -1915,6 +1916,7 @@ void CDir::go_bad_dentry(snapid_t last, const std::string &dname)
 
 void CDir::go_bad(bool complete)
 {
+  dout(10) << "go_bad " << frag << dendl;
   const bool fatal = cache->mds->damage_table.notify_dirfrag(inode->ino(), frag);
   if (fatal) {
     cache->mds->damaged();
