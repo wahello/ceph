@@ -2833,22 +2833,15 @@ void MDSMonitor::maybe_replace_gid(mds_gid_t gid,
     pending_fsmap.promote(sgid, fs, info.rank);
 
     *mds_propose = true;
-  } else if (info.state == MDSMap::STATE_STANDBY_REPLAY) {
-    dout(10) << " failing " << gid << " " << info.addr << " mds." << info.rank << "." << info.inc
-      << " " << ceph_mds_state_name(info.state)
+  } else if (info.state == MDSMap::STATE_STANDBY_REPLAY || 
+             info.state == MDSMap::STATE_STANDBY) {
+    dout(10) << " failing and removing " << gid << " " << info.addr << " mds." << info.rank 
+      << "." << info.inc << " " << ceph_mds_state_name(info.state)
       << dendl;
     fail_mds_gid(gid);
     *mds_propose = true;
   } else {
-    if (info.state == MDSMap::STATE_STANDBY ||
-        info.state == MDSMap::STATE_STANDBY_REPLAY) {
-      // remove it
-      dout(10) << " removing " << gid << " " << info.addr << " mds." << info.rank << "." << info.inc
-        << " " << ceph_mds_state_name(info.state)
-        << " (laggy)" << dendl;
-      fail_mds_gid(gid);
-      *mds_propose = true;
-    } else if (!info.laggy()) {
+    if (!info.laggy()) {
       dout(10) << " marking " << gid << " " << info.addr << " mds." << info.rank << "." << info.inc
         << " " << ceph_mds_state_name(info.state)
         << " laggy" << dendl;
