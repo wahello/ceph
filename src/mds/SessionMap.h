@@ -148,6 +148,7 @@ public:
 
   void notify_cap_release(size_t n_caps);
   void notify_recall_sent(int const new_limit);
+  void clear_recalled_at();
 
   inodeno_t next_ino() {
     if (info.prealloc_inos.empty())
