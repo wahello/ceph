@@ -8675,10 +8675,6 @@ int Client::_write(Fh *f, int64_t offset, uint64_t size, const char *buf,
   // use/adjust fd pos?
   if (offset < 0) {
     lock_fh_pos(f);
-    /*
-     * FIXME: this is racy in that we may block _after_ this point waiting for caps, and size may
-     * change out from under us.
-     */
     if (f->flags & O_APPEND) {
       int r = _lseek(f, 0, SEEK_END);
       if (r < 0) {
