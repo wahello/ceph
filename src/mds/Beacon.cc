@@ -383,10 +383,12 @@ void Beacon::notify_health(MDSRank const *mds)
   //
   // Detect clients failing to advance their old_client_tid
   {
-    set<Session*> sessions;
-    mds->sessionmap.get_client_session_set(sessions);
     utime_t cutoff = ceph_clock_now(g_ceph_context);
     cutoff -= g_conf->mds_recall_state_timeout;
+
+    set<Session*> sessions;
+    if (mds->mdcache->last_recall_state >= cutoff)
+      mds->sessionmap.get_client_session_set(sessions);
 
     std::list<MDSHealthMetric> late_recall_metrics;
     std::list<MDSHealthMetric> large_completed_requests_metrics;
