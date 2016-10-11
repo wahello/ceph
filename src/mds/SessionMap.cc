@@ -815,6 +815,13 @@ void Session::notify_recall_sent(int const new_limit)
   }
 }
 
+void Session::clear_recalled_at()
+{
+  recalled_at = utime_t();
+  recall_count = 0;
+  recall_release_count = 0;
+}
+
 void Session::set_client_metadata(map<string, string> const &meta)
 {
   info.client_metadata = meta;
