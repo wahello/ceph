@@ -337,6 +337,8 @@ def format_help(cmddict, partial=None):
 
         if not cmd['help']:
             continue
+        if cmd['flags'] is not None and (cmd['flags'] & 0x6):
+            continue # deprecated | obsolete
         concise = concise_sig(cmd['sig'])
         if partial and not concise.startswith(partial):
             continue
