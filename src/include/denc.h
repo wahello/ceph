@@ -46,12 +46,6 @@ struct denc_traits {
 };
 
 
-// hack for debug only; FIXME
-//#include <iostream>
-//using std::cout;
-
-
-
 /*
 
   top level level functions look like so
@@ -663,7 +657,7 @@ struct denc_traits<
                                  !traits::featured, void>::type
   bound_encode(const std::list<T>& s, size_t& p) {
     size_t elem_size = 0;
-    denc(*(const T*)nullptr, elem_size);
+    denc(T(), elem_size);
     p += sizeof(uint32_t) + elem_size * s.size();
   }
   template<typename U=T>
@@ -682,7 +676,7 @@ struct denc_traits<
                                  traits::featured>::type
   bound_encode(const std::list<T>& s, size_t& p, uint64_t f) {
     size_t elem_size = 0;
-    denc(*(const T*)nullptr, elem_size, f);
+    denc(T(), elem_size, f);
     p += sizeof(uint32_t) + elem_size * s.size();
   }
 
@@ -745,7 +739,7 @@ struct denc_traits<
                                  !traits::featured, void>::type
   bound_encode(const std::vector<T>& s, size_t& p) {
     size_t elem_size = 0;
-    denc(*(const T*)nullptr, elem_size);
+    denc(T(), elem_size);
     p += sizeof(uint32_t) + elem_size * s.size();
   }
   template<typename U=T>
@@ -764,7 +758,7 @@ struct denc_traits<
                                  traits::featured>::type
   bound_encode(const std::vector<T>& s, size_t& p, uint64_t f) {
     size_t elem_size = 0;
-    denc(*(const T*)nullptr, elem_size, f);
+    denc(T(), elem_size, f);
     p += sizeof(uint32_t) + elem_size * s.size();
   }
 
@@ -854,7 +848,7 @@ struct denc_traits<
                                  !traits::featured, void>::type
   bound_encode(const std::set<T>& s, size_t& p) {
     size_t elem_size = 0;
-    denc(*(const T*)nullptr, elem_size);
+    denc(T(), elem_size);
     p += sizeof(uint32_t) + elem_size * s.size();
   }
   template<typename U=T>
@@ -873,7 +867,7 @@ struct denc_traits<
                                  !traits::featured>::type
   bound_encode(const std::set<T>& s, size_t& p, uint64_t f) {
     size_t elem_size = 0;
-    denc(*(const T*)nullptr, elem_size, f);
+    denc(T(), elem_size, f);
     p += sizeof(uint32_t) + elem_size * s.size();
   }
 
@@ -981,8 +975,8 @@ struct denc_traits<
   bound_encode(const std::map<A,B>& v, size_t& p) {
     denc((uint32_t)v.size(), p);
     size_t elem_size = 0;
-    denc(*(A*)nullptr, elem_size);
-    denc(*(B*)nullptr, elem_size);
+    denc(A(), elem_size);
+    denc(B(), elem_size);
     p += v.size() * elem_size;
   }
   template<typename AA=A>
@@ -992,8 +986,8 @@ struct denc_traits<
   bound_encode(const std::map<A,B>& v, size_t& p, uint64_t f) {
     denc((uint32_t)v.size(), p);
     size_t elem_size = 0;
-    denc(*(A*)nullptr, elem_size, f);
-    denc(*(B*)nullptr, elem_size, f);
+    denc(A(), elem_size, f);
+    denc(B(), elem_size, f);
     p += v.size() * elem_size;
   }
 
