@@ -3813,6 +3813,9 @@ void CInode::validate_disk_state(CInode::validated_data *results,
       bool equivalent, divergent;
       int memory_newer;
 
+      MDCache *mdcache = in->mdcache;
+      const inode_t& inode = in->inode;
+
       // Ignore rval because it's the result of a FAILOK operation
       // from fetch_backtrace_and_tag: the real result is in
       // backtrace.ondisk_read_retval
@@ -3865,8 +3868,6 @@ next:
       // If the inode's number was free in the InoTable, fix that
       // (#15619)
       {
-        const inode_t& inode = in->inode;
-        MDCache *mdcache = in->mdcache;
         InoTable *inotable = mdcache->mds->inotable;
 
         dout(10) << "scrub: inotable ino = 0x" << std::hex << inode.ino << dendl;
