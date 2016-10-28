@@ -6365,21 +6365,28 @@ bool MDCache::trim(int max, int count)
   while (trimming_nulls || lru.lru_get_size() + unexpirable > (unsigned)max) {
     CDentry *dn = static_cast<CDentry*>(lru.lru_expire());
     if (!dn) {
+      dout(10) << __func__ << " lru_expire returned null" << dendl;
       break;
     }
     if (!dn->get_linkage()->is_null()) {
       trimming_nulls = false;
       if (lru.lru_get_size() + unexpirable <= (unsigned)max) {
+        dout(10) << __func__ << " done trimming nulls" << dendl;
         break;
       }
     }
     if ((is_standby_replay && dn->get_linkage()->inode &&
         dn->get_linkage()->inode->item_open_file.is_on_list()) ||
 	trim_dentry(dn, expiremap)) {
+      dout(20) << __func__ << " unexpirable! " << *dn << dendl;
       unexpirables.push_back(dn);
       ++unexpirable;
     }
   }
+
+  dout(10) << __func__ << "after initial scan, cur=" << lru.lru_get_size()
+    << ", unexpirable = " << unexpirable << dendl;
+
   for(list<CDentry*>::iterator i = unexpirables.begin();
       i != unexpirables.end();
       ++i)
