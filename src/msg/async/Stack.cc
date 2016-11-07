@@ -14,6 +14,7 @@
  *
  */
 
+#include <urcu.h>
 #include "common/Cond.h"
 #include "common/errno.h"
 #include "PosixStack.h"
@@ -41,6 +42,8 @@ void NetworkStack::add_thread(unsigned i, std::function<void ()> &thread)
       ldout(cct, 10) << __func__ << " starting" << dendl;
       w->initialize();
       w->init_done();
+      pthread_setspecific(w->cct->registered, this);
+      rcu_register_thread();
       while (!w->done) {
         ldout(cct, 30) << __func__ << " calling event process" << dendl;
 
@@ -51,6 +54,7 @@ void NetworkStack::add_thread(unsigned i, std::function<void ()> &thread)
           // TODO do something?
         }
       }
+      rcu_unregister_thread();
       w->reset();
       w->destroy();
     }

@@ -12,6 +12,7 @@
  * 
  */
 
+#include <urcu.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -1588,10 +1589,15 @@ void Pipe::reader()
     assert(pipe_lock.is_locked());
   }
 
+  rcu_register_thread();
+  pthread_setspecific(msgr->cct->registered, this);
+
   // loop.
   while (state != STATE_CLOSED &&
 	 state != STATE_CONNECTING) {
     assert(pipe_lock.is_locked());
+
+    rcu_quiescent_state();
 
     // sleep if (re)connecting
     if (state == STATE_STANDBY) {
@@ -1606,6 +1612,9 @@ void Pipe::reader()
     pipe_lock.Unlock();
 
     char tag = -1;
+
+    rcu_thread_offline();
+
     ldout(msgr->cct,20) << "reader reading tag..." << dendl;
     if (tcp_read((char*)&tag, 1) < 0) {
       pipe_lock.Lock();
@@ -1613,6 +1622,8 @@ void Pipe::reader()
       fault(true);
       continue;
     }
+
+    rcu_thread_online();
 
     if (tag == CEPH_MSGR_TAG_KEEPALIVE) {
       ldout(msgr->cct,2) << "reader got KEEPALIVE" << dendl;
@@ -1768,7 +1779,8 @@ void Pipe::reader()
     }
   }
 
- 
+  rcu_unregister_thread();
+
   // reap?
   reader_running = false;
   reader_needs_join = true;
