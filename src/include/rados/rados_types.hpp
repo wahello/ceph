@@ -51,7 +51,7 @@ struct object_id_t {
 };
 
 struct err_t {
-  enum {
+  enum : uint64_t {
     SHARD_MISSING        = 1 << 1,
     SHARD_STAT_ERR       = 1 << 2,
     SHARD_READ_ERR       = 1 << 3,
@@ -67,8 +67,8 @@ struct err_t {
     // When adding more here add to either SHALLOW_ERRORS or DEEP_ERRORS
   };
   uint64_t errors = 0;
-  const uint64_t SHALLOW_ERRORS = SHARD_MISSING|SHARD_STAT_ERR|SIZE_MISMATCH_OI|OI_ATTR_MISSING|OI_ATTR_CORRUPTED|SS_ATTR_MISSING|SS_ATTR_CORRUPTED;
-  const uint64_t DEEP_ERRORS = SHARD_READ_ERR|DATA_DIGEST_MISMATCH_OI|OMAP_DIGEST_MISMATCH_OI|SHARD_EC_HASH_MISMATCH|SHARD_EC_SIZE_MISMATCH;
+  static constexpr uint64_t SHALLOW_ERRORS = SHARD_MISSING|SHARD_STAT_ERR|SIZE_MISMATCH_OI|OI_ATTR_MISSING|OI_ATTR_CORRUPTED|SS_ATTR_MISSING|SS_ATTR_CORRUPTED;
+  static constexpr uint64_t DEEP_ERRORS = SHARD_READ_ERR|DATA_DIGEST_MISMATCH_OI|OMAP_DIGEST_MISMATCH_OI|SHARD_EC_HASH_MISMATCH|SHARD_EC_SIZE_MISMATCH;
   bool has_shard_missing() const {
     return errors & SHARD_MISSING;
   }
@@ -138,7 +138,7 @@ inline bool operator<(const osd_shard_t &lhs, const osd_shard_t &rhs) {
 }
 
 struct obj_err_t {
-  enum {
+  enum : uint64_t {
     OBJECT_INFO_INCONSISTENCY   = 1 << 1,
     // XXX: Can an older rados binary work if these bits stay the same?
     DATA_DIGEST_MISMATCH = 1 << 4,
@@ -149,8 +149,8 @@ struct obj_err_t {
     // When adding more here add to either SHALLOW_ERRORS or DEEP_ERRORS
   };
   uint64_t errors = 0;
-  const uint64_t SHALLOW_ERRORS = OBJECT_INFO_INCONSISTENCY|SIZE_MISMATCH|ATTR_VALUE_MISMATCH|ATTR_NAME_MISMATCH;
-  const uint64_t DEEP_ERRORS = DATA_DIGEST_MISMATCH|OMAP_DIGEST_MISMATCH;
+  static constexpr uint64_t SHALLOW_ERRORS = OBJECT_INFO_INCONSISTENCY|SIZE_MISMATCH|ATTR_VALUE_MISMATCH|ATTR_NAME_MISMATCH;
+  static constexpr uint64_t DEEP_ERRORS = DATA_DIGEST_MISMATCH|OMAP_DIGEST_MISMATCH;
   bool has_object_info_inconsistency() const {
     return errors & OBJECT_INFO_INCONSISTENCY;
   }

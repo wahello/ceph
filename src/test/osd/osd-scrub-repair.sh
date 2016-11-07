@@ -17,8 +17,10 @@
 source $(dirname $0)/../detect-build-env-vars.sh
 source $CEPH_ROOT/qa/workunits/ceph-helpers.sh
 
+# Test development and debugging
 # Set to "yes" in order to ignore diff errors and save results to update test
 getjson="no"
+
 termwidth=$(stty -a | head -1 | sed -e 's/.*columns \([0-9]*\).*/\1/')
 if test -n "$termwidth" ; then termwidth="-W ${termwidth}"; fi
 

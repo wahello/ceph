@@ -1439,7 +1439,7 @@ static void dump_inconsistent(const inconsistent_obj_t& inc,
     if (shard.selected_oi) {
       object_info_t oi;
       bufferlist bl;
-      map<std::string, ceph::bufferlist>::iterator k = shard.attrs.find(OI_ATTR);
+      auto k = shard.attrs.find(OI_ATTR);
       assert(k != shard.attrs.end()); // Can't be missing
       bufferlist::iterator bliter = k->second.begin();
       ::decode(oi, bliter);  // Can't be corrupted
