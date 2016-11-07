@@ -12,6 +12,7 @@
  * 
  */
 
+#include <urcu.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -261,12 +262,21 @@ void *Pipe::DelayedDelivery::entry()
   Mutex::Locker locker(delay_lock);
   lgeneric_subdout(pipe->msgr->cct, ms, 20) << *pipe << "DelayedDelivery::entry start" << dendl;
 
+  rcu_register_thread();
+
   while (!stop_delayed_delivery) {
+
+    rcu_thread_online();
+
     if (delay_queue.empty()) {
       lgeneric_subdout(pipe->msgr->cct, ms, 30) << *pipe << "DelayedDelivery::entry sleeping on delay_cond because delay queue is empty" << dendl;
+      rcu_thread_offline();
       delay_cond.Wait(delay_lock);
       continue;
     }
+
+    rcu_quiescent_state();
+
     utime_t release = delay_queue.front().first;
     Message *m = delay_queue.front().second;
     string delay_msg_type = pipe->msgr->cct->_conf->ms_inject_delay_msg_type;
@@ -302,6 +312,9 @@ void *Pipe::DelayedDelivery::entry()
     }
     active_flush = false;
   }
+
+  rcu_unregister_thread();
+
   lgeneric_subdout(pipe->msgr->cct, ms, 20) << *pipe << "DelayedDelivery::entry stop" << dendl;
   return NULL;
 }
@@ -1588,10 +1601,15 @@ void Pipe::reader()
     assert(pipe_lock.is_locked());
   }
 
+  rcu_register_thread();
+  pthread_setspecific(msgr->cct->registered, this);
+
   // loop.
   while (state != STATE_CLOSED &&
 	 state != STATE_CONNECTING) {
     assert(pipe_lock.is_locked());
+
+    rcu_quiescent_state();
 
     // sleep if (re)connecting
     if (state == STATE_STANDBY) {
@@ -1606,6 +1624,9 @@ void Pipe::reader()
     pipe_lock.Unlock();
 
     char tag = -1;
+
+    rcu_thread_offline();
+
     ldout(msgr->cct,20) << "reader reading tag..." << dendl;
     if (tcp_read((char*)&tag, 1) < 0) {
       pipe_lock.Lock();
@@ -1613,6 +1634,8 @@ void Pipe::reader()
       fault(true);
       continue;
     }
+
+    rcu_thread_online();
 
     if (tag == CEPH_MSGR_TAG_KEEPALIVE) {
       ldout(msgr->cct,2) << "reader got KEEPALIVE" << dendl;
@@ -1768,7 +1791,8 @@ void Pipe::reader()
     }
   }
 
- 
+  rcu_unregister_thread();
+
   // reap?
   reader_running = false;
   reader_needs_join = true;
