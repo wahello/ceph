@@ -11064,7 +11064,7 @@ void MDCache::dispatch_fragment_dir(MDRequestRef& mdr)
     dout(10) << " can't auth_pin " << *diri << ", requeuing dir "
 	     << info.dirs.front()->dirfrag() << dendl;
     if (info.bits > 0)
-      mds->balancer->queue_split(info.dirs.front());
+      mds->balancer->queue_split(info.dirs.front(), false);
     else
       mds->balancer->queue_merge(info.dirs.front());
     fragment_unmark_unfreeze_dirs(info.dirs);
@@ -11228,6 +11228,10 @@ void MDCache::_fragment_stored(MDRequestRef& mdr)
 
     // unfreeze
     dir->unfreeze_dir();
+
+    // Hit the dir, in case the resulting fragments are beyond the split
+    // size
+    mds->balancer->hit_dir(mdr->get_mds_stamp(), dir, META_POP_IRD);
   }
 
   fragments.erase(it);

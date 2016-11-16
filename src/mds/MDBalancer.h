@@ -49,12 +49,11 @@ class MDBalancer {
   string bal_version;
 
   utime_t last_heartbeat;
-  utime_t last_fragment;
   utime_t last_sample;    
   utime_t rebalance_time; //ensure a consistent view of load for rebalance
 
   // todo
-  set<dirfrag_t>   split_queue, merge_queue;
+  set<dirfrag_t>   split_pending, merge_pending;
 
   // per-epoch scatter/gathered info
   map<mds_rank_t, mds_load_t>  mds_load;
@@ -97,8 +96,6 @@ public:
 
   void tick();
 
-  void do_fragmenting();
-
   void export_empties();
   //set up the rebalancing targets for export and do one if the
   //MDSMap is up to date
@@ -125,7 +122,7 @@ public:
 
   void show_imports(bool external=false);
 
-  void queue_split(CDir *dir);
+  void queue_split(const CDir *dir, bool fast);
   void queue_merge(CDir *dir);
 
 };
