@@ -11326,9 +11326,11 @@ void MDCache::_fragment_finish(dirfrag_t basedirfrag, list<CDir*>& resultfrags)
     dir->state_clear(CDir::STATE_FRAGMENTING);
     dir->auth_unpin(this);
 
-    // Hit the dir, in case the resulting fragments are beyond the split
-    // size
-    mds->balancer->hit_dir(ceph_clock_now(g_ceph_context), dir, META_POP_IRD);
+    // In case the resulting fragments are beyond the split size,
+    // we might need to split them again right away (they could
+    // have been taking inserts between unfreezing and getting
+    // here)
+    mds->balancer->maybe_fragment(dir, false);
   }
 
   if (mds->logger) {
