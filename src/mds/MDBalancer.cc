@@ -387,25 +387,26 @@ void MDBalancer::queue_split(const CDir *dir, bool fast)
 
   auto callback = [this, frag](int r) {
     if (split_pending.count(frag) == 0) {
-      // Someone beat me to it
+      // Someone beat me to it.  This can happen in the fast splitting
+      // path, because we spawn two contexts, one with mds->timer and
+      // one with mds->queue_waiter.  The loser can safely just drop
+      // out.
       return;
     }
 
     split_pending.erase(frag);
 
     CDir *split_dir = mds->mdcache->get_dirfrag(frag);
-    // FIXME maybe instead of this check we should ensure
-    // frag gets removed from split_pending on removing from
-    // mdcache?
     if (!split_dir) {
-      dout(4) << __func__ << " frag dropped out of cache: " << frag << dendl;
+      dout(10) << "drop split on " << frag << " because not in cache" << dendl;
       return;
     }
-    dout(10) << __func__ << " splitting " << *split_dir << dendl;
-    if (!split_dir || !split_dir->is_auth()) {
+    if (!split_dir->is_auth()) {
+      dout(10) << "drop split on " << *split_dir << " because lost auth" << dendl;
       return;
     }
 
+    dout(10) << __func__ << " splitting " << *split_dir << dendl;
     mds->mdcache->split_dir(split_dir, g_conf->mds_bal_split_bits);
   };
 
@@ -433,10 +434,22 @@ void MDBalancer::queue_merge(CDir *dir)
 {
   const auto frag = dir->dirfrag();
   auto callback = [this, frag](int r) {
+    assert(frag.frag != frag_t());
+
+    // frag must be in this set because only one context is in flight
+    // for a given frag at a time (because merge_pending is checked before
+    // starting one), and this context is the only one that erases it.
+    merge_pending.erase(frag);
+
     CDir *dir = mds->mdcache->get_dirfrag(frag);
-    if (!dir ||
-        !dir->is_auth() ||
-        dir->get_frag() == frag_t()) {
+    if (!dir) {
+      dout(10) << "drop merge on " << frag << " because not in cache" << dendl;
+      return;
+    }
+    assert(dir->dirfrag() == frag);
+
+    if(!dir->is_auth()) {
+      dout(10) << "drop merge on " << *dir << " because lost auth" << dendl;
       return;
     }
 
@@ -1071,7 +1084,8 @@ void MDBalancer::hit_dir(utime_t now, CDir *dir, int type, int who, double amoun
 	(dir->should_split() ||
 	 (v > g_conf->mds_bal_split_rd && type == META_POP_IRD) ||
 	 (v > g_conf->mds_bal_split_wr && type == META_POP_IWR))) {
-      dout(10) << "hit_dir " << type << " pop is " << v << ", putting in split_pending: " << *dir << dendl;
+      dout(10) << "hit_dir " << type << " pop is " << v
+               << ", putting in split_pending: " << *dir << dendl;
       if (split_pending.count(dir->dirfrag()) == 0) {
         queue_split(dir, false);
       } else {

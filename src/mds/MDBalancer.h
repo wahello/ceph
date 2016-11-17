@@ -52,7 +52,10 @@ class MDBalancer {
   utime_t last_sample;    
   utime_t rebalance_time; //ensure a consistent view of load for rebalance
 
-  // todo
+  // Dirfrags which are marked to be passed on to MDCache::[split|merge]_dir
+  // just as soon as a delayed context comes back and triggers it.
+  // These sets just prevent us from spawning extra timer contexts for
+  // dirfrags that already have one in flight.
   set<dirfrag_t>   split_pending, merge_pending;
 
   // per-epoch scatter/gathered info
@@ -124,7 +127,6 @@ public:
 
   void queue_split(const CDir *dir, bool fast);
   void queue_merge(CDir *dir);
-
 };
 
 
