@@ -10739,15 +10739,17 @@ bool MDCache::can_fragment(CInode *diri, list<CDir*>& dirs)
 
 void MDCache::split_dir(CDir *dir, int bits)
 {
-  dout(7) << "split_dir " << *dir << " bits " << bits << dendl;
+  dout(7) << __func__ << " " << *dir << " bits " << bits << dendl;
   assert(dir->is_auth());
   CInode *diri = dir->inode;
 
   list<CDir*> dirs;
   dirs.push_back(dir);
 
-  if (!can_fragment(diri, dirs))
+  if (!can_fragment(diri, dirs)) {
+    dout(7) << __func__ << " cannot fragment right now, dropping" << dendl;
     return;
+  }
 
   MDRequestRef mdr = request_start_internal(CEPH_MDS_OP_FRAGMENTDIR);
   mdr->more()->fragment_base = dir->dirfrag();

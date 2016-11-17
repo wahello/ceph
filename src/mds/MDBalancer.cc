@@ -379,7 +379,8 @@ double MDBalancer::try_match(mds_rank_t ex, double& maxex,
 
 void MDBalancer::queue_split(const CDir *dir, bool fast)
 {
-  dout(10) << __func__ << " enqueuing " << *dir << dendl;
+  dout(10) << __func__ << " enqueuing " << *dir
+                       << " (fast=" << fast << ")" << dendl;
 
   assert(mds->mdsmap->allows_dirfrags());
   const dirfrag_t frag = dir->dirfrag();
@@ -1074,13 +1075,7 @@ void MDBalancer::hit_dir(utime_t now, CDir *dir, int type, int who, double amoun
       if (split_pending.count(dir->dirfrag()) == 0) {
         queue_split(dir, false);
       } else {
-        // If the dir size is too far ahead of bal_split_size, then do a
-        // mds->queue_waiter to action the split at the end of the current
-        // request instead of waiting for the timer.
-        // Count null dentries in effective size to take account of insertions
-        // that haven't committed yet.
-        auto effective_size = dir->get_frag_size() + dir->get_num_head_null();
-        if (effective_size > g_conf->mds_bal_split_size * 1.5) {
+        if (dir->should_split_fast()) {
           dout(4) << "hit_dir: fragment hit hard limit, splitting immediately ("
             << *dir << ")" << dendl;
           queue_split(dir, true);
