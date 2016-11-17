@@ -11266,10 +11266,6 @@ void MDCache::_fragment_stored(MDRequestRef& mdr)
 
     // unfreeze
     dir->unfreeze_dir();
-
-    // Hit the dir, in case the resulting fragments are beyond the split
-    // size
-    mds->balancer->hit_dir(mdr->get_mds_stamp(), dir, META_POP_IRD);
   }
 
   fragments.erase(it);
@@ -11324,9 +11320,13 @@ void MDCache::_fragment_finish(dirfrag_t basedirfrag, list<CDir*>& resultfrags)
   ufragment &uf = it->second;
 
   // unmark & auth_unpin
-  for (list<CDir*>::iterator p = resultfrags.begin(); p != resultfrags.end(); ++p) {
-    (*p)->state_clear(CDir::STATE_FRAGMENTING);
-    (*p)->auth_unpin(this);
+  for (const auto &dir : resultfrags) {
+    dir->state_clear(CDir::STATE_FRAGMENTING);
+    dir->auth_unpin(this);
+
+    // Hit the dir, in case the resulting fragments are beyond the split
+    // size
+    mds->balancer->hit_dir(ceph_clock_now(g_ceph_context), dir, META_POP_IRD);
   }
 
   if (mds->logger) {
