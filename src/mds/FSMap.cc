@@ -232,12 +232,21 @@ void FSMap::print_summary(Formatter *f, ostream *out) const
 void FSMap::get_health(list<pair<health_status_t,string> >& summary,
 			list<pair<health_status_t,string> > *detail) const
 {
-  for (auto i : filesystems) {
+  mds_rank_t standby_count_desired = 0;
+  for (auto &i : filesystems) {
     auto fs = i.second;
 
     // TODO: move get_health up into here so that we can qualify
     // all the messages with what filesystem they're talking about
     fs->mds_map.get_health(summary, detail);
+
+    standby_count_desired = std::max(standby_count_desired, fs->mds_map.get_standby_count_desired());
+  }
+
+  if ((size_t)standby_count_desired > standby_daemons.size()) {
+    std::ostringstream oss;
+    oss << "insufficient standby daemons available: have " << standby_daemons.size() << "; desire " << standby_count_desired;
+    summary.push_back(make_pair(HEALTH_WARN, oss.str()));
   }
 }
 
@@ -687,6 +696,8 @@ void FSMap::promote(
     // An existing rank is being assigned to a replacement
     info.state = MDSMap::STATE_REPLAY;
     mds_map.failed.erase(assigned_rank);
+    if (mds_map.standby_count_desired == 0)
+      mds_map.standby_count_desired = 1;
   }
   info.rank = assigned_rank;
   info.inc = epoch;
@@ -722,6 +733,9 @@ void FSMap::assign_standby_replay(
   fs->mds_map.mds_info[standby_gid].rank = leader_rank;
   fs->mds_map.mds_info[standby_gid].state = MDSMap::STATE_STANDBY_REPLAY;
   mds_roles[standby_gid] = leader_ns;
+
+  if (fs->mds_map.standby_count_desired == 0)
+    fs->mds_map.standby_count_desired = 1;
 
   // Remove from the list of standbys
   standby_daemons.erase(standby_gid);
