@@ -47,6 +47,7 @@ void *Finisher::finisher_thread_entry()
 
   utime_t start, end;
   rcu_register_thread();
+  pthread_setspecific(cct->registered, this);
 
   while (!finisher_stop) {
     /// Every time we are woken up, we process the queue until it is empty.
@@ -104,6 +105,9 @@ void *Finisher::finisher_thread_entry()
     finisher_cond.Wait(finisher_lock);
     rcu_thread_online();
   }
+
+  rcu_unregister_thread();
+
   // If we are exiting, we signal the thread waiting in stop(),
   // otherwise it would never unblock
   finisher_empty_cond.Signal();

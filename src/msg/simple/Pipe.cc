@@ -263,6 +263,7 @@ void *Pipe::DelayedDelivery::entry()
   lgeneric_subdout(pipe->msgr->cct, ms, 20) << *pipe << "DelayedDelivery::entry start" << dendl;
 
   rcu_register_thread();
+  pthread_setspecific(pipe->msgr->cct->registered, this);
 
   while (!stop_delayed_delivery) {
 
