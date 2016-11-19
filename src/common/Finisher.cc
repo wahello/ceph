@@ -1,6 +1,7 @@
 // -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
 // vim: ts=8 sw=2 smarttab
 
+#include <urcu.h>
 #include "common/config.h"
 #include "Finisher.h"
 
@@ -45,9 +46,12 @@ void *Finisher::finisher_thread_entry()
   ldout(cct, 10) << "finisher_thread start" << dendl;
 
   utime_t start, end;
+  rcu_register_thread();
+
   while (!finisher_stop) {
     /// Every time we are woken up, we process the queue until it is empty.
     while (!finisher_queue.empty()) {
+      rcu_quiescent_state();
       // To reduce lock contention, we swap out the queue to process.
       // This way other threads can submit new contexts to complete while we are working.
       vector<Context*> ls;
@@ -96,7 +100,9 @@ void *Finisher::finisher_thread_entry()
       break;
     
     ldout(cct, 10) << "finisher_thread sleeping" << dendl;
+    rcu_thread_offline();
     finisher_cond.Wait(finisher_lock);
+    rcu_thread_online();
   }
   // If we are exiting, we signal the thread waiting in stop(),
   // otherwise it would never unblock
