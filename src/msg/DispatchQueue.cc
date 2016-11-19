@@ -1,3 +1,4 @@
+
 // -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*- 
 // vim: ts=8 sw=2 smarttab
 /*
@@ -12,6 +13,7 @@
  * 
  */
 
+#include <urcu.h>
 #include "msg/Message.h"
 #include "DispatchQueue.h"
 #include "Messenger.h"
@@ -150,9 +152,13 @@ void DispatchQueue::dispatch_throttle_release(uint64_t msize)
  */
 void DispatchQueue::entry()
 {
+  rcu_register_thread();
+  pthread_setspecific(cct->registered, this);
+
   lock.Lock();
   while (true) {
     while (!mqueue.empty()) {
+      rcu_quiescent_state();
       QueueItem qitem = mqueue.dequeue();
       if (!qitem.is_code())
 	remove_arrival(qitem.get_message());
@@ -205,9 +211,12 @@ void DispatchQueue::entry()
       break;
 
     // wait for something to be put on queue
+    rcu_thread_offline();
     cond.Wait(lock);
+    rcu_thread_online();
   }
   lock.Unlock();
+  rcu_unregister_thread();
 }
 
 void DispatchQueue::discard_queue(uint64_t id) {
