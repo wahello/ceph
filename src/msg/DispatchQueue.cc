@@ -107,14 +107,21 @@ void DispatchQueue::local_delivery(Message *m, int priority)
 
 void DispatchQueue::run_local_delivery()
 {
+  rcu_register_thread();
+  pthread_setspecific(cct->registered, this);
+
   local_delivery_lock.Lock();
   while (true) {
     if (stop_local_delivery)
       break;
     if (local_messages.empty()) {
+      rcu_thread_offline();
       local_delivery_cond.Wait(local_delivery_lock);
+      rcu_thread_online();
       continue;
     }
+    rcu_quiescent_state();
+
     pair<Message *, int> mp = local_messages.front();
     local_messages.pop_front();
     local_delivery_lock.Unlock();
@@ -129,6 +136,8 @@ void DispatchQueue::run_local_delivery()
     local_delivery_lock.Lock();
   }
   local_delivery_lock.Unlock();
+
+  rcu_unregister_thread();
 }
 
 void DispatchQueue::dispatch_throttle_release(uint64_t msize)
