@@ -193,6 +193,7 @@ protected:
    */
 
   mds_rank_t max_mds; /* The maximum number of active MDSes. Also, the maximum rank. */
+  mds_rank_t standby_count_desired;
   string balancer;    /* The name/version of the mantle balancer (i.e. the rados obj name) */
 
   std::set<mds_rank_t> in;              // currently defined cluster
@@ -228,6 +229,7 @@ public:
       cas_pool(-1),
       metadata_pool(-1),
       max_mds(0),
+      standby_count_desired(0),
       ever_allowed_features(0),
       explicitly_allowed_features(0),
       inline_data_enabled(false),
@@ -289,6 +291,15 @@ public:
 
   mds_rank_t get_max_mds() const { return max_mds; }
   void set_max_mds(mds_rank_t m) { max_mds = m; }
+
+  mds_rank_t get_standby_count_desired() {
+    assert(standby_count_desired >= 0);
+    std::set<mds_rank_t> s;
+    get_standby_replay_mds_set(s);
+    size_t standby_replay_count = s.size();
+    return (size_t)standby_count_desired > standby_replay_count ? standby_count_desired - standby_replay_count : 0;
+  }
+  void set_standby_count_desired(mds_rank_t n) { standby_count_desired = n; }
 
   const std::string get_balancer() const { return balancer; }
   void set_balancer(std::string val) { balancer.assign(val); }
@@ -369,6 +380,9 @@ public:
   }
   void get_active_mds_set(std::set<mds_rank_t>& s) const {
     get_mds_set(s, MDSMap::STATE_ACTIVE);
+  }
+  void get_standby_replay_mds_set(std::set<mds_rank_t>& s) const {
+    get_mds_set(s, MDSMap::STATE_STANDBY_REPLAY);
   }
   void get_failed_mds_set(std::set<mds_rank_t>& s) const {
     s = failed;
