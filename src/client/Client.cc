@@ -3303,8 +3303,9 @@ void Client::check_caps(Inode *in, unsigned flags)
   int issued = in->caps_issued(&implemented);
   int revoking = implemented & ~issued;
 
-  int retain = wanted | used | CEPH_CAP_PIN;
+  int retain = wanted | used;
   if (!unmounting) {
+    retain |= CEPH_CAP_PIN;
     if (wanted)
       retain |= CEPH_CAP_ANY;
     else
