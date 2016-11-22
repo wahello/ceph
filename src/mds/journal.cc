@@ -2849,6 +2849,27 @@ void dirfrag_rollback::decode(bufferlist::iterator &bl)
 // -----------------------
 // EExport
 
+void EExport::remove_blooms(CDir *dir)
+{
+  dir->remove_bloom();
+
+  std::list<CDir*> subdirs;
+  CDir::map_t::iterator it;
+  for (it = dir->begin(); it != dir->end(); ++it) {
+    CDentry *dn = it->second;
+    CInode *in = dn->get_linkage()->get_inode();
+
+    if (dn->get_linkage()->is_primary()) {
+      in->get_nested_dirfrags(subdirs);
+    }
+  }
+
+  // subdirs
+  for (const auto subdir : subdirs) {
+    remove_blooms(subdir);
+  }
+}
+
 void EExport::replay(MDSRank *mds)
 {
   dout(10) << "EExport.replay " << base << dendl;
@@ -2865,6 +2886,10 @@ void EExport::replay(MDSRank *mds)
     assert(bd);
     realbounds.insert(bd);
   }
+
+  // Any CDirs that are no longer auth, must have their bloom
+  // filters cleared
+  remove_blooms(dir);
 
   // adjust auth away
   mds->mdcache->adjust_bounded_subtree_auth(dir, realbounds, CDIR_AUTH_UNDEF);

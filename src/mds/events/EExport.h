@@ -29,6 +29,8 @@ public:
 protected:
   dirfrag_t      base;
   set<dirfrag_t> bounds;
+
+  void remove_blooms(CDir *dir);
   
 public:
   EExport() : LogEvent(EVENT_EXPORT) { }
